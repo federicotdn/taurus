@@ -13,7 +13,7 @@ for i, sign in enumerate(signs):
     pix = im.load()
     out = open('../sign-' + sign + '.cpp', 'w')
 
-    outH = open('../sign-' + sign + '.h', 'w')
+    outH = open('../include/sign-' + sign + '.h', 'w')
     outH.write('#ifndef ' + sign.upper() + '_H\n')
     outH.write('#define ' + sign.upper() + '_H\n\n')
     outH.write('#include <avr/pgmspace.h>\n\n')
