@@ -26,6 +26,10 @@
 #include "include/planet-uranus.h"
 #include "include/planet-venus.h"
 
+// EYES
+#include "include/eye-closed.h"
+#include "include/eye-open.h"
+
 #define USE_SECUENTIAL 1
 
 #define SIGN_COUNT 12
@@ -61,13 +65,14 @@ enum Scene {
 		WORMHOLE,
 		SYMBOLS_SNAKE,
 		SCROLL_STARS,
+		EYES,
 		TOTAL
 };
 
 // TODO:
 // Better scene random order
 
-Scene currentScene = SCROLL_STARS;
+Scene currentScene = EYES;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -164,6 +169,7 @@ bool checkSceneEnded(long seconds) {
 void tauroSymbolScene() {
 		const char* s = getSignSymbol(1);
 		TV.bitmap(BMP_X, BMP_Y, s);
+		TV.delay(1);
 		checkSceneEnded(5);
 }
 
@@ -516,6 +522,22 @@ void scrollStarsScene(bool changed) {
 		}
 }
 
+void eyesScene(bool changed) {
+		TV.bitmap(BMP_X, BMP_Y, open_eye);
+
+		int irisRadius = 6;
+		int irisOffset = -irisRadius + random(irisRadius * 2);
+		TV.draw_circle((WIDTH / 2) + irisOffset, HEIGHT / 2, irisRadius, 1, 1);
+
+		TV.delay(1200);
+
+		TV.bitmap(BMP_X, BMP_Y, closed_eye);
+
+		TV.delay(random(200, 600));
+
+		checkSceneEnded(20);
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
@@ -583,6 +605,9 @@ void loop() {
 						break;
 				case SCROLL_STARS:
 						scrollStarsScene(changed);
+						break;
+				case EYES:
+						eyesScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
