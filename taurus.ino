@@ -38,11 +38,15 @@
 #define BMP_X ((WIDTH / 2) - (IMG_SIZE / 2))
 #define BMP_Y ((HEIGHT / 2) - (IMG_SIZE / 2))
 
+#define FONT_W 6
+#define FONT_H 8
+
 enum Scene {
 		SYMBOL_TAURUS = 0,
 		SYMBOLS_FAST,
 		PLANETS_SYMBOLS_FAST,
 		WORDS_FAST,
+		WORDS_FAST_INLINE,
 		STARS,
 		NOISE,
 		SYMBOL_FADE,
@@ -51,13 +55,15 @@ enum Scene {
 		SYMBOL_GLITCH_LOAD,
 		CONSTELLATIONS,
 		COMMANDS,
+		WORD_CURSOR,
+		WORMHOLE,
 		TOTAL
 };
 
 // TODO:
 // Better scene random order
 
-Scene currentScene = CONSTELLATIONS;
+Scene currentScene = WORMHOLE;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -150,7 +156,7 @@ bool checkSceneEnded(long seconds) {
 
 void tauroSymbolScene() {
 		const char* s = getSignSymbol(1);
-		TV.bitmap(0, 0, s);
+		TV.bitmap(BMP_X, BMP_Y, s);
 		checkSceneEnded(5);
 }
 
@@ -164,7 +170,7 @@ void starsScene() {
 		TV.delay(500);
 		TV.clear_screen();
 		const char* s = getSignSymbol(sign);
-		TV.bitmap(0, 0, s);
+		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(500);
 
 		TV.clear_screen();
@@ -191,12 +197,14 @@ void constellationsScene() {
 		int y2 = random(HEIGHT);
 		
 		for (int i = 0; i < rayCount; i++) {
+				// Main star
 				TV.draw_line(x, y, x2, y2, 1);
 				x2 = random(WIDTH);
 				y2 = random(HEIGHT);
 		}
 				
-		for (int i = 0; i < random(6, 10); i++) {
+		for (int i = 0; i < random(6, 14); i++) {
+				// Background stars
 				TV.set_pixel(random(WIDTH), random(HEIGHT), 1);
 		}
 
@@ -214,20 +222,20 @@ void symbolGlitchLoadScene(bool changed) {
 		if (changed) {
 				signLoad = random(SIGN_COUNT);
 				const char* s = getSignSymbol(signLoad);
-				TV.bitmap(0, 0, s);
+				TV.bitmap(BMP_X, BMP_Y, s);
 				TV.delay(3000);
 				return;
 		}
 
 		const char* s = getSignSymbol(signLoad);
-		TV.bitmap(0, 0, s, 1, IMG_SIZE - random(1, 10), IMG_SIZE - random(1, 10));
+		TV.bitmap(BMP_X, BMP_Y, s, 1, IMG_SIZE - random(1, 10), IMG_SIZE - random(1, 10));
 		TV.set_cursor(0, HEIGHT - 8);
 		TV.print(signs_words[12 + signLoad]);
 		TV.print("?");
 		TV.delay(random(50, 250));
 		
 		TV.clear_screen();
-		TV.bitmap(0, 0, s);
+		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(1000);
 
 		checkSceneEnded(15);
@@ -237,7 +245,7 @@ void symbolFadeScene(bool changed) {
 		if (changed) {
 				int sign = random(SIGN_COUNT);
 				const char* s = getSignSymbol(sign);
-				TV.bitmap(0, 0, s);
+				TV.bitmap(BMP_X, BMP_Y, s);
 				return;
 		}
 
@@ -272,7 +280,7 @@ void symbolCheckerboardScene(bool changed) {
 		if (changed) {
 				glitchSign = random(SIGN_COUNT);
 				const char* s = getSignSymbol(glitchSign);
-				TV.bitmap(0, 0, s);
+				TV.bitmap(BMP_X, BMP_Y, s);
 
 				for (int x = 0; x < WIDTH; x++) {
 						for (int y = 0; y < HEIGHT; y++) {
@@ -299,16 +307,18 @@ void symbolCheckerboardScene(bool changed) {
 void symbolGlitchSizeScene() {
 		TV.clear_screen();
 		const char* s = getSignSymbol(random(SIGN_COUNT));
-		TV.bitmap(0, 0, s, 0, IMG_SIZE - random(0, 10), IMG_SIZE - random(0, 10));
+		TV.bitmap(BMP_X, BMP_Y, s, 0, IMG_SIZE - random(0, 10), IMG_SIZE - random(0, 10));
 		TV.delay(150);
 
 		if (checkSceneEnded(15)) {
 				int mid = HEIGHT / 2;
 				const char* word = errors_words[random(ERRORS_WORDS_COUNT)];
+				int xOffset = (strlen(word) * FONT_W) / 2;
+				int yOffset = FONT_H / 2;
 
 				for (int i = 0; i < 40; i++) { //flashes
-						TV.draw_rect(0, mid - 5, WIDTH, 10, 0, 0);
-						TV.set_cursor(0, HEIGHT / 2);
+						TV.draw_rect(0, mid - FONT_H, WIDTH, FONT_H * 2, 0, 0);
+						TV.set_cursor((WIDTH / 2) - xOffset, (HEIGHT / 2) - yOffset);
 						if (i % 2 == 0) {
 								TV.print(word);
 						}
@@ -330,15 +340,24 @@ void fastWordsScene() {
 		if (random(4) == 0) {
 				TV.print("_");
 		}
-		TV.println(signs_words[random(0, SIGNS_WORDS_COUNT)]);
+		TV.println(signs_words[random(SIGNS_WORDS_COUNT)]);
 		TV.delay(150);
+		checkSceneEnded(10);
+}
+
+void wordsFastInlineScene() {
+		TV.clear_screen();
+		TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
+		TV.print(signs_words[SIGN_COUNT + random(SIGN_COUNT)]);
+		TV.delay(120);
+
 		checkSceneEnded(10);
 }
 
 int fssI = 0;
 void fastSymbolsScene() {
 		const char* s = getSignSymbol(fssI % SIGN_COUNT);
-		TV.bitmap(0, 0, s);
+		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(150);
 		fssI++;
 
@@ -347,11 +366,51 @@ void fastSymbolsScene() {
 
 void planetSymbolsFastScene() {
 		const char* s = getPlanetSymbol(fssI % PLANET_COUNT);
-		TV.bitmap(0, 0, s);
+		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(250);
 		fssI++;
 
 		checkSceneEnded(20);
+}
+
+char *cursorWord = NULL;
+int cursorIdx = 0;
+void wordCursorScene(bool changed) {
+		if (changed) {
+				cursorWord = signs_words[SIGN_COUNT + random(SIGN_COUNT)];
+				cursorIdx = 0;
+		}
+
+		if (cursorWord[cursorIdx]) {
+				char randChar = random(65, 91);
+				TV.set_cursor(cursorIdx * FONT_W, (HEIGHT / 2) - (FONT_H / 2));
+
+				TV.print(randChar);
+			
+				if (cursorWord[cursorIdx] == randChar) {
+					cursorIdx++;
+				}
+
+				TV.delay(50);
+
+				if (!cursorWord[cursorIdx]) {
+					TV.print(" OK.");
+				}
+		}
+
+		checkSceneEnded(15);
+}
+
+void wormholeScene(bool changed) {
+		TV.clear_screen();
+		int circleCount = random(3, 7);
+		for (int i = 0; i < circleCount; i++) {
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, random(HEIGHT / 2), WHITE, BLACK);
+		}
+
+		TV.delay(120);
+
+		checkSceneEnded(8);
 }
 
 void loop() {
@@ -378,6 +437,9 @@ void loop() {
 				case WORDS_FAST:
 						fastWordsScene();
 						break;
+				case WORDS_FAST_INLINE:
+						wordsFastInlineScene();
+						break;
 				case STARS:
 						starsScene();
 						break;
@@ -401,6 +463,12 @@ void loop() {
 						break;
 				case SYMBOL_GLITCH_LOAD:
 						symbolGlitchLoadScene(changed);
+						break;
+				case WORD_CURSOR:
+						wordCursorScene(changed);
+						break;
+				case WORMHOLE:
+						wormholeScene(changed);
 						break;
 		}
 }
