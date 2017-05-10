@@ -1,5 +1,7 @@
 #include <TVout.h>
 #include <fontALL.h>
+
+// SIGNS
 #include "include/sign-aries.h"
 #include "include/sign-taurus.h"
 #include "include/sign-gemini.h"
@@ -12,20 +14,39 @@
 #include "include/sign-capricorn.h"
 #include "include/sign-aquarius.h"
 #include "include/sign-pisces.h"
+
 #include "include/words.h"
 
+// PLANETS
+#include "include/planet-mars.h"
+#include "include/planet-jupiter.h"
+#include "include/planet-mercury.h"
+#include "include/planet-neptune.h"
+#include "include/planet-saturn.h"
+#include "include/planet-uranus.h"
+#include "include/planet-venus.h"
+
+#define USE_SECUENTIAL 1
+
 #define SIGN_COUNT 12
-#define WIDTH 64
-#define HEIGHT 64
+#define PLANET_COUNT 7
+#define WIDTH 120
+#define HEIGHT 96
+#define IMG_SIZE 64
+
+// Coordinates to place bitmaps on the center of the screen
+#define BMP_X ((WIDTH / 2) - (IMG_SIZE / 2))
+#define BMP_Y ((HEIGHT / 2) - (IMG_SIZE / 2))
 
 enum Scene {
-		SYMBOL_TAURUS,
+		SYMBOL_TAURUS = 0,
 		SYMBOLS_FAST,
+		PLANETS_SYMBOLS_FAST,
 		WORDS_FAST,
 		STARS,
 		NOISE,
 		SYMBOL_FADE,
-		SYMBOL_GLITCH,
+		SYMBOL_CHECKERBOARD,
 		SYMBOL_GLITCH_SIZE,
 		SYMBOL_GLITCH_LOAD,
 		CONSTELLATIONS,
@@ -36,10 +57,31 @@ enum Scene {
 // TODO:
 // Better scene random order
 
-Scene currentScene = NOISE;
+Scene currentScene = CONSTELLATIONS;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
+
+const unsigned char* getPlanetSymbol(int i) {
+		switch (i) {
+				case 0:
+					return venus_planet;;
+				case 1:
+					return jupiter_planet;
+				case 2:
+					return mars_planet;
+				case 3:
+					return mercury_planet;
+				case 4:
+					return neptune_planet;
+				case 5:
+					return saturn_planet;
+				case 6:
+					return uranus_planet;
+				default:
+					return venus_planet;
+		}
+}
 
 const unsigned char* getSignSymbol(int i) {
 		switch (i) {
@@ -73,11 +115,11 @@ const unsigned char* getSignSymbol(int i) {
 }
 
 void setup() {
-		TV.begin(NTSC, WIDTH, HEIGHT);
+		TV.begin(PAL, WIDTH, HEIGHT);
 		TV.clear_screen();
-  	//TV.select_font(font4x6);
-  	TV.select_font(font6x8);
-  	//TV.select_font(font8x8);
+  		//TV.select_font(font4x6);
+  		TV.select_font(font6x8);
+  		//TV.select_font(font8x8);
 		startTime = TV.millis();
 		randomSeed(analogRead(0));
 }
@@ -87,11 +129,19 @@ bool checkSceneEnded(long seconds) {
 
 		if (TV.millis() - startTime > seconds * 1000) {
 				Scene nextScene = currentScene;
-				while (nextScene == currentScene) {
-						nextScene = (Scene)random(TOTAL);
+				
+			#if USE_SECUENTIAL
+				nextScene = nextScene + 1;
+				if (nextScene == TOTAL) {
+					nextScene = 0;
 				}
-				currentScene = nextScene;
+			#else
+				while (nextScene == currentScene) {
+					nextScene = (Scene)random(TOTAL);
+				}
+			#endif
 
+				currentScene = nextScene;
 				return true;
 		}
 
@@ -130,6 +180,7 @@ void starsScene() {
 		checkSceneEnded(15);
 }
 
+int constellationI = 0;
 void constellationsScene() {
 		TV.clear_screen();
 		int rayCount = random(5, 9);
@@ -150,8 +201,9 @@ void constellationsScene() {
 		}
 
 		TV.set_cursor(0, HEIGHT - 8);
-		TV.print(stars_words[random(STARS_WORDS_COUNT)]);
-
+		TV.print(stars_words[constellationI % STARS_WORDS_COUNT]);
+		constellationI++;
+		
 		TV.delay(600);
 
 		checkSceneEnded(15);
@@ -168,12 +220,13 @@ void symbolGlitchLoadScene(bool changed) {
 		}
 
 		const char* s = getSignSymbol(signLoad);
-		TV.bitmap(0, 0, s, 1, WIDTH - random(1, 12), HEIGHT - random(1, 12));
+		TV.bitmap(0, 0, s, 1, IMG_SIZE - random(1, 10), IMG_SIZE - random(1, 10));
 		TV.set_cursor(0, HEIGHT - 8);
 		TV.print(signs_words[12 + signLoad]);
 		TV.print("?");
 		TV.delay(random(50, 250));
 		
+		TV.clear_screen();
 		TV.bitmap(0, 0, s);
 		TV.delay(1000);
 
@@ -215,7 +268,7 @@ void commandsScene() {
 }
 
 int glitchSign = -1;
-void symbolGlitchScene(bool changed) {
+void symbolCheckerboardScene(bool changed) {
 		if (changed) {
 				glitchSign = random(SIGN_COUNT);
 				const char* s = getSignSymbol(glitchSign);
@@ -244,15 +297,16 @@ void symbolGlitchScene(bool changed) {
 }
 
 void symbolGlitchSizeScene() {
+		TV.clear_screen();
 		const char* s = getSignSymbol(random(SIGN_COUNT));
-		TV.bitmap(0, 0, s, 0, WIDTH - random(1, 10), HEIGHT - random(0, 10));
+		TV.bitmap(0, 0, s, 0, IMG_SIZE - random(0, 10), IMG_SIZE - random(0, 10));
 		TV.delay(150);
 
-		if (checkSceneEnded(10)) {
+		if (checkSceneEnded(15)) {
 				int mid = HEIGHT / 2;
 				const char* word = errors_words[random(ERRORS_WORDS_COUNT)];
 
-				for (int i = 0; i < 20; i++) { //flashes
+				for (int i = 0; i < 40; i++) { //flashes
 						TV.draw_rect(0, mid - 5, WIDTH, 10, 0, 0);
 						TV.set_cursor(0, HEIGHT / 2);
 						if (i % 2 == 0) {
@@ -283,9 +337,18 @@ void fastWordsScene() {
 
 int fssI = 0;
 void fastSymbolsScene() {
-		const char* s = getSignSymbol(fssI % 12);
+		const char* s = getSignSymbol(fssI % SIGN_COUNT);
 		TV.bitmap(0, 0, s);
 		TV.delay(150);
+		fssI++;
+
+		checkSceneEnded(20);
+}
+
+void planetSymbolsFastScene() {
+		const char* s = getPlanetSymbol(fssI % PLANET_COUNT);
+		TV.bitmap(0, 0, s);
+		TV.delay(250);
 		fssI++;
 
 		checkSceneEnded(20);
@@ -309,6 +372,9 @@ void loop() {
 				case SYMBOLS_FAST:
 						fastSymbolsScene();
 						break;
+				case PLANETS_SYMBOLS_FAST:
+						planetSymbolsFastScene();
+						break;
 				case WORDS_FAST:
 						fastWordsScene();
 						break;
@@ -321,8 +387,8 @@ void loop() {
 				case SYMBOL_FADE:
 						symbolFadeScene(changed);
 						break;
-				case SYMBOL_GLITCH:
-						symbolGlitchScene(changed);
+				case SYMBOL_CHECKERBOARD:
+						symbolCheckerboardScene(changed);
 						break;
 				case SYMBOL_GLITCH_SIZE:
 						symbolGlitchSizeScene();

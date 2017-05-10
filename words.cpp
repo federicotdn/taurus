@@ -14,11 +14,11 @@ const char *stars_words[STARS_WORDS_COUNT] = {
 };
 
 const char *errors_words[ERRORS_WORDS_COUNT] = {
-    "ERROR", "FATALERR", "FAILURE", "ERR", "PANIC", "404", "NULL", "SIGTERM", "SIGKILL",
+    "ERROR", "FATAL ERR", "FAILURE", "ERR", "PANIC", "404", "NULL", "SIGTERM", "SIGKILL",
     "SIGINT", "SIGILL", "SIGQUIT", "SIGTERM", "STOP"
 };
 
 const char *cmds_words[CMDS_WORDS_COUNT] = {
     "./tauro.exe", "RUN", "STAR... OK", "SUN... OK", "MOON... OK", "VENUS DATA",
-    "EPOCHJ2000", "92 BAR", "9.2MPA", "...DONE"
+    "EPOCH J2000", "92 BAR", "9.2MPA", "...DONE"
 };
