@@ -15,7 +15,7 @@ const char *stars_words[STARS_WORDS_COUNT] = {
 
 const char *errors_words[ERRORS_WORDS_COUNT] = {
     "ERROR", "FATAL ERR", "FAILURE", "ERR", "PANIC", "404", "NULL", "SIGTERM", "SIGKILL",
-    "SIGINT", "SIGILL", "SIGQUIT", "SIGTERM", "STOP"
+    "SIGINT", "SIGILL", "SIGQUIT", "SIGTERM", "STOP", "RESET"
 };
 
 const char *cmds_words[CMDS_WORDS_COUNT] = {

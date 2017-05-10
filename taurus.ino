@@ -41,6 +41,8 @@
 #define FONT_W 6
 #define FONT_H 8
 
+#define LED_PIN 13
+
 enum Scene {
 		SYMBOL_TAURUS = 0,
 		SYMBOLS_FAST,
@@ -57,13 +59,15 @@ enum Scene {
 		COMMANDS,
 		WORD_CURSOR,
 		WORMHOLE,
+		SYMBOLS_SNAKE,
+		SCROLL_STARS,
 		TOTAL
 };
 
 // TODO:
 // Better scene random order
 
-Scene currentScene = WORMHOLE;
+Scene currentScene = SCROLL_STARS;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -128,6 +132,9 @@ void setup() {
   		//TV.select_font(font8x8);
 		startTime = TV.millis();
 		randomSeed(analogRead(0));
+
+		pinMode(LED_PIN, OUTPUT);
+		digitalWrite(LED_PIN, LOW);
 }
 
 bool checkSceneEnded(long seconds) {
@@ -212,9 +219,9 @@ void constellationsScene() {
 		TV.print(stars_words[constellationI % STARS_WORDS_COUNT]);
 		constellationI++;
 		
-		TV.delay(600);
+		TV.delay(700);
 
-		checkSceneEnded(15);
+		checkSceneEnded(20);
 }
 
 int signLoad = -1;
@@ -232,13 +239,13 @@ void symbolGlitchLoadScene(bool changed) {
 		TV.set_cursor(0, HEIGHT - 8);
 		TV.print(signs_words[12 + signLoad]);
 		TV.print("?");
-		TV.delay(random(50, 250));
+		TV.delay(random(100, 250));
 		
 		TV.clear_screen();
 		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(1000);
 
-		checkSceneEnded(15);
+		checkSceneEnded(20);
 }
 
 void symbolFadeScene(bool changed) {
@@ -310,13 +317,13 @@ void symbolGlitchSizeScene() {
 		TV.bitmap(BMP_X, BMP_Y, s, 0, IMG_SIZE - random(0, 10), IMG_SIZE - random(0, 10));
 		TV.delay(150);
 
-		if (checkSceneEnded(15)) {
+		if (checkSceneEnded(20)) {
 				int mid = HEIGHT / 2;
 				const char* word = errors_words[random(ERRORS_WORDS_COUNT)];
 				int xOffset = (strlen(word) * FONT_W) / 2;
 				int yOffset = FONT_H / 2;
 
-				for (int i = 0; i < 40; i++) { //flashes
+				for (int i = 0; i < 50; i++) { //flashes
 						TV.draw_rect(0, mid - FONT_H, WIDTH, FONT_H * 2, 0, 0);
 						TV.set_cursor((WIDTH / 2) - xOffset, (HEIGHT / 2) - yOffset);
 						if (i % 2 == 0) {
@@ -333,7 +340,9 @@ void noiseScene() {
 				TV.set_pixel(random(WIDTH), random(HEIGHT), random(3));
 		}
 
-		checkSceneEnded(5);
+		if (checkSceneEnded(8)) {
+				TV.delay(1000);
+		}
 }
 
 void fastWordsScene() {
@@ -413,11 +422,110 @@ void wormholeScene(bool changed) {
 		checkSceneEnded(8);
 }
 
+enum Orientation {
+	Tau_NE, Tau_SE, Tau_SW, Tau_NW, TOTAL_ORIENTATION
+};
+
+char *lastSnakeBmp = NULL;
+Orientation orientation = Tau_NE;
+int snakeX = WIDTH / 2;
+int snakeY = HEIGHT / 2;
+unsigned long lastReset = 0;
+void symbolsSnakeScene(bool changed) {
+		if (changed) {
+				if (random(2) == 0) {
+						lastSnakeBmp = getSignSymbol(random(SIGN_COUNT));
+				} else {
+						lastSnakeBmp = getPlanetSymbol(random(PLANET_COUNT));
+				}
+
+				TV.bitmap(BMP_X, BMP_Y, lastSnakeBmp);
+				
+				lastReset = TV.millis();
+				snakeX = WIDTH / 2;
+				snakeY = HEIGHT / 2;
+		}
+
+		if (TV.millis() - lastReset > 1500) {
+				TV.clear_screen();
+				TV.bitmap(BMP_X, BMP_Y, lastSnakeBmp);
+				lastReset = TV.millis();
+		}
+
+		unsigned char currentColor = TV.get_pixel(snakeX, snakeY);
+		TV.set_pixel(snakeX, snakeY, !currentColor);
+
+		switch (orientation) {
+				case Tau_NE:
+					snakeY--;
+					snakeX++;
+				break;
+				case Tau_SE:
+					snakeY++;
+					snakeX++;
+				break;
+				case Tau_SW:
+					snakeX--;
+					snakeY++;
+				break;
+				case Tau_NW:
+					snakeX--;
+					snakeY--;
+				break;
+		}
+
+		if (snakeX < 0) {
+				snakeX = WIDTH;
+		} else if (snakeX > WIDTH) {
+				snakeX = 0;
+		}
+
+		if (snakeY < 0) {
+				snakeY = HEIGHT;
+		} else if (snakeY > HEIGHT) {
+				snakeY = 0;
+		}
+
+		unsigned char newColor = TV.get_pixel(snakeX, snakeY);
+
+		if (newColor != currentColor) {
+				orientation = orientation + 1;
+				orientation = orientation % TOTAL_ORIENTATION;
+		}
+
+		checkSceneEnded(20);
+}
+
+void scrollStarsScene(bool changed) {
+		if (changed) {
+				// Draw the earth
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, HEIGHT / 2, WHITE, WHITE);
+		}
+
+		TV.shift(1, 1);
+
+		// Place a new star on top line
+		if (random(7) == 0) {
+				TV.set_pixel(random(WIDTH), 0, 1);
+		}
+
+		TV.delay(100);
+
+		if (checkSceneEnded(12)) {
+				TV.delay(1000);
+		}
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
 				TV.clear_screen();
 				TV.set_cursor(0, 0);
+
+				digitalWrite(LED_PIN, HIGH);
+				TV.delay(100);
+				digitalWrite(LED_PIN, LOW);
+
 				startTime = TV.millis();
 				changed = true;
 		}
@@ -469,6 +577,16 @@ void loop() {
 						break;
 				case WORMHOLE:
 						wormholeScene(changed);
+						break;
+				case SYMBOLS_SNAKE:
+						symbolsSnakeScene(changed);
+						break;
+				case SCROLL_STARS:
+						scrollStarsScene(changed);
+						break;
+				default:
+						TV.print("Invalid scene. ");
+						TV.delay(1000);
 						break;
 		}
 }
