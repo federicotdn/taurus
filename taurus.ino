@@ -66,13 +66,16 @@ enum Scene {
 		SYMBOLS_SNAKE,
 		SCROLL_STARS,
 		EYES,
+		CHANNEL,
+		VHS,
+		SYMBOL_SHIFT,
 		TOTAL
 };
 
 // TODO:
 // Better scene random order
 
-Scene currentScene = EYES;
+Scene currentScene = SYMBOL_SHIFT;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -538,6 +541,141 @@ void eyesScene(bool changed) {
 		checkSceneEnded(20);
 }
 
+void channelScene(bool changed) {
+		if (changed) {
+				char *s = "VIDEO 1";
+				TV.set_cursor(WIDTH - (strlen(s) * FONT_W) - 2, FONT_H + 2);
+				TV.print(s);
+		}
+
+		TV.delay(1);
+
+		checkSceneEnded(8);
+}
+
+int vhsTime = 0;
+void vhsScene(bool changed) {
+		char *stop = "STOP";
+		char *play = "PLAY";
+		const int timerWidth = 5;
+		char *timer = "--:--";
+
+		if (changed) {
+				vhsTime = 0;
+				TV.set_cursor(2, FONT_H + 2);
+				TV.print(stop);
+
+				TV.set_cursor(WIDTH - (timerWidth * FONT_W) - 2, FONT_H + 2);
+				TV.print(timer);
+
+				TV.delay(3500);
+				TV.clear_screen();
+
+				TV.set_cursor(2, FONT_H + 2);
+				TV.print(play);
+
+				return;
+		}
+
+		TV.set_cursor(WIDTH - (timerWidth * FONT_W) - 2, FONT_H + 2);
+		TV.print("00:0");
+		TV.print(vhsTime % 10);
+		vhsTime++;
+
+		TV.delay(1000);
+
+		checkSceneEnded(9);
+}
+
+void shiftLine(int orientation, int direction, int index, int step) {
+		if (orientation == 0) {
+				// Shift column
+				if (direction == 1) {
+						for (int i = HEIGHT - 2; i >= 0; i--) {
+								unsigned char pix = TV.get_pixel(index, i);
+								TV.set_pixel(index, i + step, pix);
+						}
+				} else {
+						for (int i = 1; i <= HEIGHT - 1; i++) {
+								unsigned char pix = TV.get_pixel(index, i);
+								TV.set_pixel(index, i - step, pix);
+						}		
+				}
+		} else {
+				// Shift row
+				if (direction == 1) {
+						for (int i = WIDTH - 2; i >= 0; i--) {
+								unsigned char pix = TV.get_pixel(i, index);
+								TV.set_pixel(i + step, index, pix);
+						}
+				} else {
+						for (int i = 1; i <= WIDTH - 1; i++) {
+								unsigned char pix = TV.get_pixel(i, index);
+								TV.set_pixel(i - step, index, pix);
+						}		
+				}			
+		}
+}
+
+#define STEP_COUNT 500
+unsigned char steps[STEP_COUNT][4] = { 0 };
+bool rewinding = false;
+int stepIdx = 0;
+char *shiftSymbol = NULL;
+void symbolShiftScene(bool changed) {
+		if (changed) {
+				rewinding = false;
+				stepIdx = 0;
+
+				if (random(2) == 0) {
+						shiftSymbol = getSignSymbol(random(SIGN_COUNT));
+				} else {
+						shiftSymbol = getPlanetSymbol(random(PLANET_COUNT));
+				}
+
+				TV.bitmap(BMP_X, BMP_Y, shiftSymbol);
+				TV.delay(1000);
+		}
+
+		int direction, step, col, row, orientation;
+
+		if (!rewinding) {
+				direction = random(2);
+				step = random(1, 6);
+				col = random(WIDTH);
+				row = random(HEIGHT);
+				orientation = random(2);
+
+				steps[stepIdx][0] = orientation;
+				steps[stepIdx][1] = direction;
+				steps[stepIdx][2] = (orientation == 0) ? col : row;
+				steps[stepIdx][3] = step;
+
+				stepIdx++;
+				if (stepIdx == STEP_COUNT) {
+						rewinding = true;
+				}
+		} else if (stepIdx >= 0) {
+				orientation = steps[stepIdx][0];
+				direction = (steps[stepIdx][1] == 0) ? 1 : 0;
+				col = row = steps[stepIdx][2];
+				step = steps[stepIdx][3];			
+
+				stepIdx--;
+		} else {
+				TV.bitmap(BMP_X, BMP_Y, shiftSymbol);
+				rewinding = false;
+				stepIdx = 0;
+				TV.delay(200);
+		}
+
+		shiftLine(orientation, direction, (orientation == 0) ? col : row, step);
+
+		if (checkSceneEnded(25)) {
+				TV.delay(1500);
+		}
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
@@ -608,6 +746,15 @@ void loop() {
 						break;
 				case EYES:
 						eyesScene(changed);
+						break;
+				case CHANNEL:
+						channelScene(changed);
+						break;
+				case VHS:
+						vhsScene(changed);
+						break;
+				case SYMBOL_SHIFT:
+						symbolShiftScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
