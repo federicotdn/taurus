@@ -30,8 +30,6 @@
 #include "include/eye-closed.h"
 #include "include/eye-open.h"
 
-#define USE_SECUENTIAL 1
-
 #define SIGN_COUNT 12
 #define PLANET_COUNT 7
 #define WIDTH 120
@@ -79,6 +77,8 @@ Scene currentScene = SYMBOL_SHIFT;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
+bool sequentialMode = true;
+unsigned int sceneCounter = 0;
 
 const unsigned char* getPlanetSymbol(int i) {
 		switch (i) {
@@ -149,18 +149,25 @@ bool checkSceneEnded(long seconds) {
 		//return false;
 
 		if (TV.millis() - startTime > seconds * 1000) {
+				sceneCounter++;
+				if (sceneCounter == TOTAL) {
+						sceneCounter = 0;
+						sequentialMode = !sequentialMode;
+				}
+
 				Scene nextScene = currentScene;
 				
-			#if USE_SECUENTIAL
-				nextScene = nextScene + 1;
-				if (nextScene == TOTAL) {
-					nextScene = 0;
+				if (sequentialMode) {
+						nextScene = nextScene + 1;
+						if (nextScene == TOTAL) {
+							nextScene = 0;
+						}
 				}
-			#else
-				while (nextScene == currentScene) {
-					nextScene = (Scene)random(TOTAL);
+				else {
+						while (nextScene == currentScene) {
+							nextScene = (Scene)random(TOTAL);
+						}
 				}
-			#endif
 
 				currentScene = nextScene;
 				return true;
@@ -385,7 +392,7 @@ void fastSymbolsScene() {
 void planetSymbolsFastScene() {
 		const char* s = getPlanetSymbol(fssI % PLANET_COUNT);
 		TV.bitmap(BMP_X, BMP_Y, s);
-		TV.delay(250);
+		TV.delay(150);
 		fssI++;
 
 		checkSceneEnded(20);
