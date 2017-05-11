@@ -67,11 +67,12 @@ enum Scene {
 		CHANNEL,
 		VHS,
 		SYMBOL_SHIFT,
+		BLINDS,
+		FADE_IN,
 		TOTAL
 };
 
-// TODO:
-// Better scene random order
+//TODO: Re-enable "verify code" in Arduino IDE
 
 Scene currentScene = SYMBOL_SHIFT;
 Scene lastScene = -1;
@@ -79,6 +80,36 @@ TVout TV;
 unsigned long startTime = 0;
 bool sequentialMode = true;
 unsigned int sceneCounter = 0;
+
+unsigned char backBuffer[HEIGHT][WIDTH / 8] = { 0 };
+
+unsigned char inline backBufferGet(int x, int y) {
+		return (backBuffer[y][x / 8] >> (7 - (x % 8))) & 0x01;
+}
+
+void backBufferSet(int x, int y, unsigned char c) {
+		if (c == 1) {
+				backBuffer[y][x / 8] |= (0x01 << (7 - (x % 8)));
+		} else {
+				backBuffer[y][x / 8] &= ~(0x01 << (7 - (x % 8)));
+		}
+}
+
+void screenToBackBuffer() {
+		for (int i = 0; i < WIDTH; i++) {
+				for (int j = 0; j < HEIGHT; j++) {
+						backBufferSet(i, j, TV.get_pixel(i, j));
+				}
+		}
+}
+
+void backBufferToScreen() {
+		for (int i = 0; i < WIDTH; i++) {
+				for (int j = 0; j < HEIGHT; j++) {
+						TV.set_pixel(i, j, backBufferGet(i, j));
+				}
+		}
+}
 
 const unsigned char* getPlanetSymbol(int i) {
 		switch (i) {
@@ -132,22 +163,41 @@ const unsigned char* getSignSymbol(int i) {
 		}
 }
 
+const unsigned char* getRandomSymbol() {
+		if (random(2) == 0) {
+			return getSignSymbol(random(SIGN_COUNT));
+		} else {
+			return getPlanetSymbol(random(PLANET_COUNT));
+		}
+} 
+
+void blinkForever() {
+		while (true) {
+				digitalWrite(LED_PIN, LOW);
+				delay(500);
+				digitalWrite(LED_PIN, HIGH);
+				delay(500);
+		}
+}
+
 void setup() {
-		TV.begin(PAL, WIDTH, HEIGHT);
+		pinMode(LED_PIN, OUTPUT);
+		digitalWrite(LED_PIN, LOW);
+
+		char err = TV.begin(PAL, WIDTH, HEIGHT);
+		if (err) {
+				blinkForever();
+		}
+		
 		TV.clear_screen();
   		//TV.select_font(font4x6);
   		TV.select_font(font6x8);
   		//TV.select_font(font8x8);
 		startTime = TV.millis();
-		randomSeed(analogRead(0));
-
-		pinMode(LED_PIN, OUTPUT);
-		digitalWrite(LED_PIN, LOW);
+		randomSeed(analogRead(0) | analogRead(1));
 }
 
 bool checkSceneEnded(long seconds) {
-		//return false;
-
 		if (TV.millis() - startTime > seconds * 1000) {
 				sceneCounter++;
 				if (sceneCounter == TOTAL) {
@@ -213,7 +263,7 @@ int constellationI = 0;
 void constellationsScene() {
 		TV.clear_screen();
 		int rayCount = random(5, 9);
-		
+
 		int x = random(WIDTH);
 		int y = random(HEIGHT);
 		int x2 = random(WIDTH);
@@ -236,6 +286,7 @@ void constellationsScene() {
 		constellationI++;
 		
 		TV.delay(700);
+		//sp(1,1,1);
 
 		checkSceneEnded(20);
 }
@@ -442,18 +493,14 @@ enum Orientation {
 	Tau_NE, Tau_SE, Tau_SW, Tau_NW, TOTAL_ORIENTATION
 };
 
-char *lastSnakeBmp = NULL;
+unsigned char *lastSnakeBmp = NULL;
 Orientation orientation = Tau_NE;
 int snakeX = WIDTH / 2;
 int snakeY = HEIGHT / 2;
 unsigned long lastReset = 0;
 void symbolsSnakeScene(bool changed) {
 		if (changed) {
-				if (random(2) == 0) {
-						lastSnakeBmp = getSignSymbol(random(SIGN_COUNT));
-				} else {
-						lastSnakeBmp = getPlanetSymbol(random(PLANET_COUNT));
-				}
+				lastSnakeBmp = getRandomSymbol();
 
 				TV.bitmap(BMP_X, BMP_Y, lastSnakeBmp);
 				
@@ -628,17 +675,13 @@ void shiftLine(int orientation, int direction, int index, int step) {
 unsigned char steps[STEP_COUNT][4] = { 0 };
 bool rewinding = false;
 int stepIdx = 0;
-char *shiftSymbol = NULL;
+unsigned char *shiftSymbol = NULL;
 void symbolShiftScene(bool changed) {
 		if (changed) {
 				rewinding = false;
 				stepIdx = 0;
 
-				if (random(2) == 0) {
-						shiftSymbol = getSignSymbol(random(SIGN_COUNT));
-				} else {
-						shiftSymbol = getPlanetSymbol(random(PLANET_COUNT));
-				}
+				shiftSymbol = getRandomSymbol();
 
 				TV.bitmap(BMP_X, BMP_Y, shiftSymbol);
 				TV.delay(1000);
@@ -680,6 +723,44 @@ void symbolShiftScene(bool changed) {
 
 		if (checkSceneEnded(25)) {
 				TV.delay(1500);
+		}
+}
+
+
+void blindsScene(bool changed) {
+		if (changed) {
+				TV.bitmap(BMP_X, BMP_Y, getRandomSymbol());
+				screenToBackBuffer();
+				TV.clear_screen();
+		}
+
+		for (int i = 0; i < HEIGHT; i++) {
+				for (int j = 0; j < WIDTH / 8; j++) {
+						backBuffer[i][j] += 1;
+				}
+		}
+
+		backBufferToScreen();
+
+		checkSceneEnded(10);
+}
+
+void fadeInScene(bool changed) {
+		if (changed) {
+				TV.bitmap(BMP_X, BMP_Y, getRandomSymbol());
+				screenToBackBuffer();
+				TV.clear_screen();
+		}
+
+		int x = random(WIDTH);
+		int y = random(HEIGHT);
+
+		if (backBufferGet(x, y)) {
+				TV.set_pixel(x, y, 1);
+		}
+
+		if (checkSceneEnded(20)) {
+				TV.delay(1000);
 		}
 }
 
@@ -762,6 +843,12 @@ void loop() {
 						break;
 				case SYMBOL_SHIFT:
 						symbolShiftScene(changed);
+						break;
+				case BLINDS:
+						blindsScene(changed);
+						break;
+				case FADE_IN:
+						fadeInScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
