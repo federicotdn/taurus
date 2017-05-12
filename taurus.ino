@@ -37,6 +37,7 @@
 #define WIDTH 120
 #define HEIGHT 96
 #define IMG_SIZE 64
+#define PI 3.14159265
 
 // Coordinates to place bitmaps on the center of the screen
 #define BMP_X ((WIDTH / 2) - (IMG_SIZE / 2))
@@ -75,12 +76,13 @@ enum Scene {
 		PARTY_WORDS,
 		FILL_LINES,
 		CIRCLES,
+		L_SYSTEM,
 		TOTAL
 };
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = CIRCLES;
+Scene currentScene = L_SYSTEM;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -184,6 +186,20 @@ void blinkForever() {
 				digitalWrite(LED_PIN, HIGH);
 				delay(500);
 		}
+}
+
+void toCartesian(int x, int y, double degrees, int len, int *endX, int *endY) {
+		int o = (int)(sin((degrees * PI) / 180.0) * len);
+		int a = (int)(cos((degrees * PI) / 180.0) * len);
+
+		*endX = x + a;
+		*endY = y - o;		
+}
+
+void drawLineAngle(int x, int y, double degrees, int len) {
+		int endX, endY;
+		toCartesian(x, y, degrees, len, &endX, &endY);
+		TV.draw_line(x, y, endX, endY, 1);
 }
 
 void setup() {
@@ -859,6 +875,49 @@ void circlesScene(bool changed) {
 		checkSceneEnded(15);
 }
 
+int startLen = 40;
+int branches = 3;
+double branchAngle = 30.0;
+double angleOffset = 0.0;
+int rouletteDenominator = 1;
+int treeXOffset = 0;
+
+void lSystemRecursive(int x, int y, double angle, int len) {
+		if (len < 1) {
+				return;
+		}
+
+		drawLineAngle(x, y, angle, len);
+		int endX, endY;
+		toCartesian(x, y, angle, len, &endX, &endY);
+
+		double startAngle = angle + ((branchAngle * (branches - 1)) / 2.0) + angleOffset;
+		for (int i = 0; i < branches; i++) {
+				double a = startAngle - (i * branchAngle);
+				if (random(rouletteDenominator) != 0) {
+						lSystemRecursive(endX, endY, a, len / 2);
+				}
+		}
+}
+
+void drawLSystem() {
+		startLen = random(30, 50);
+		branches = random(3, 5);
+		branchAngle = random(25, 40);
+		angleOffset = -10 + random(20);
+		rouletteDenominator = random(3, 5);
+		treeXOffset = -20 + random(40);
+		lSystemRecursive(treeXOffset + (WIDTH / 2), HEIGHT - 1, 90.0 + angleOffset, startLen);
+} 
+
+void lSystemScene() {
+		drawLSystem();
+		TV.delay(200);
+		TV.clear_screen();
+
+		checkSceneEnded(20);
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
@@ -956,6 +1015,9 @@ void loop() {
 						break;
 				case CIRCLES:
 						circlesScene(changed);
+						break;
+				case L_SYSTEM:
+						lSystemScene();
 						break;
 				default:
 						TV.print("Invalid scene. ");
