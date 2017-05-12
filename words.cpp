@@ -22,3 +22,7 @@ const char *cmds_words[CMDS_WORDS_COUNT] = {
     "./tauro.exe", "RUN", "STAR... OK", "SUN... OK", "MOON... OK", "VENUS DATA",
     "EPOCH J2000", "92 BAR", "9.2MPA", "...DONE"
 };
+
+const char *event_words[EVENT_WORDS_COUNT] = {
+    "FIESTA", "ALCOHOL", "CUMBIA", "TAURO", "ANARCOAFECCION", "TECHNO", "SABADO", "13 MAYO" 
+};

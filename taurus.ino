@@ -30,6 +30,8 @@
 #include "include/eye-closed.h"
 #include "include/eye-open.h"
 
+#include "include/white-bear.h"
+
 #define SIGN_COUNT 12
 #define PLANET_COUNT 7
 #define WIDTH 120
@@ -69,12 +71,14 @@ enum Scene {
 		SYMBOL_SHIFT,
 		BLINDS,
 		FADE_IN,
+		WHITE_BEAR,
+		PARTY_WORDS,
 		TOTAL
 };
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = SYMBOL_SHIFT;
+Scene currentScene = PARTY_WORDS;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -742,7 +746,7 @@ void blindsScene(bool changed) {
 
 		backBufferToScreen();
 
-		checkSceneEnded(10);
+		checkSceneEnded(15);
 }
 
 void fadeInScene(bool changed) {
@@ -761,6 +765,39 @@ void fadeInScene(bool changed) {
 
 		if (checkSceneEnded(20)) {
 				TV.delay(1000);
+		}
+}
+
+void whiteBearScene(bool changed) {
+		if (changed) {
+				TV.bitmap(BMP_X, BMP_Y, white_bear);
+				TV.delay(3000);
+				return;
+		}
+
+		TV.bitmap(BMP_X, BMP_Y, white_bear, 0, IMG_SIZE - random(1, 10), IMG_SIZE - random(1, 10));
+		TV.delay(random(50, 200));
+		
+		TV.clear_screen();
+		TV.bitmap(BMP_X, BMP_Y, white_bear);
+		TV.delay(1000);
+
+		checkSceneEnded(15);		
+}
+
+int partyIdx = 0;
+void partyWordsScene() {
+		TV.clear_screen();
+		TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
+		TV.print(event_words[partyIdx % EVENT_WORDS_COUNT]);
+		TV.delay(140);
+
+		partyIdx++;
+
+		if (checkSceneEnded(10)) {
+				TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
+				TV.print("ORGULLO TAURINO.");
+				TV.delay(3000);					
 		}
 }
 
@@ -849,6 +886,12 @@ void loop() {
 						break;
 				case FADE_IN:
 						fadeInScene(changed);
+						break;
+				case WHITE_BEAR:
+						whiteBearScene(changed);
+						break;
+				case PARTY_WORDS:
+						partyWordsScene();
 						break;
 				default:
 						TV.print("Invalid scene. ");
