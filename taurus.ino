@@ -34,7 +34,7 @@
 
 #define SIGN_COUNT 12
 #define PLANET_COUNT 7
-#define WIDTH 120
+#define WIDTH 128
 #define HEIGHT 96
 #define IMG_SIZE 64
 #define PI 3.14159265
@@ -82,7 +82,7 @@ enum Scene {
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = L_SYSTEM;
+Scene currentScene = SYMBOL_TAURUS;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -492,7 +492,7 @@ void wordCursorScene(bool changed) {
 				TV.delay(50);
 
 				if (!cursorWord[cursorIdx]) {
-					TV.print(" OK.");
+					TV.print(" LOADED.");
 				}
 		}
 
