@@ -73,12 +73,14 @@ enum Scene {
 		FADE_IN,
 		WHITE_BEAR,
 		PARTY_WORDS,
+		FILL_LINES,
+		CIRCLES,
 		TOTAL
 };
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = PARTY_WORDS;
+Scene currentScene = CIRCLES;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -801,6 +803,62 @@ void partyWordsScene() {
 		}
 }
 
+int fillLinesDirection = 0;
+void fillLinesScene(bool changed) {
+		if (changed) {
+				TV.bitmap(BMP_X, BMP_Y, getRandomSymbol());
+				screenToBackBuffer();
+				TV.clear_screen();
+				fillLinesDirection = random(4);		
+		}
+
+		int x = random(WIDTH);
+		int y = random(HEIGHT);
+
+		while (!backBufferGet(x, y)) {
+				TV.set_pixel(x, y, 1);
+
+				switch (fillLinesDirection) {
+						case UP:
+								y--;
+								break;
+						case DOWN:
+								y++;
+								break;
+						case RIGHT:
+								x++;
+								break;
+						case LEFT:
+								x--;
+								break;
+				}
+
+				if (x < 0 || x > WIDTH - 1 || y < 0 || y > HEIGHT - 1) {
+						break;
+				}
+		}
+
+		TV.delay_frame(1);
+		
+		checkSceneEnded(25);
+}
+
+unsigned int circleCounter = 0;
+void circlesScene(bool changed) {
+		if (changed) {
+
+		}
+
+		for (int i = 0; i < HEIGHT / 2; i++) {
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, i, (i + circleCounter) % 2);
+				TV.delay_frame(1);
+		}
+
+		circleCounter++;
+		
+		checkSceneEnded(15);
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
@@ -892,6 +950,12 @@ void loop() {
 						break;
 				case PARTY_WORDS:
 						partyWordsScene();
+						break;
+				case FILL_LINES:
+						fillLinesScene(changed);
+						break;
+				case CIRCLES:
+						circlesScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
