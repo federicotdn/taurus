@@ -78,12 +78,13 @@ enum Scene {
 		CIRCLES,
 		L_SYSTEM,
 		CLOCK,
+		CHART,
 		TOTAL
 };
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = CLOCK;
+Scene currentScene = CHART;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -352,21 +353,16 @@ void symbolFadeScene(bool changed) {
 				int sign = random(SIGN_COUNT);
 				const char* s = getSignSymbol(sign);
 				TV.bitmap(BMP_X, BMP_Y, s);
-				return;
+				screenToBackBuffer();
+				TV.clear_screen();
 		}
 
-		for (int i = 0; i < 30; i++) {
-				TV.set_pixel(random(WIDTH), random(HEIGHT), 0);
-		}
+		int x = random(WIDTH);
+		int y = random(HEIGHT);
+		unsigned char c = backBufferGet(x, y);
+		TV.set_pixel(x, y, !c);
 
-		if (TV.millis() - startTime > 2600) {
-				TV.shift(1, 3);
-				TV.shift(1, 0);
-		}
-
-		TV.delay(200);
-
-		checkSceneEnded(10);
+		checkSceneEnded(20);
 }
 
 int cmdIdx = 0;
@@ -415,7 +411,7 @@ void symbolGlitchSizeScene() {
 		TV.clear_screen();
 		const char* s = getSignSymbol(random(SIGN_COUNT));
 		TV.bitmap(BMP_X, BMP_Y, s, 0, IMG_SIZE - random(0, 10), IMG_SIZE - random(0, 10));
-		TV.delay(150);
+		TV.delay(random(20, 250));
 
 		if (checkSceneEnded(20)) {
 				int mid = HEIGHT / 2;
@@ -961,6 +957,34 @@ void clockScene(bool changed) {
 		checkSceneEnded(15);
 }
 
+double chartRayLen = 0;
+void chartScene(bool changed) {
+		const int chartRadius = (HEIGHT / 2) - 6;
+		if (changed) {
+				chartRayLen = 0;
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, chartRadius, 1, 0);
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, chartRadius - 7, 1, 0);
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, 12, 1, 0);
+
+				for (int i = 0; i < 12; i++) {
+						drawLineAngle(WIDTH / 2, HEIGHT / 2, i * (360.0 / 12), chartRadius, 1);
+				}
+
+				TV.delay(2000);
+		}
+
+		int rays = random(2, 7);
+		double offset = random(180);
+		for (int i = 0; i < rays; i++) {
+				drawLineAngle(WIDTH / 2, HEIGHT / 2, (i * (360.0 / rays)) + offset, chartRayLen + (chartRadius / 2), 1);
+		}
+
+		TV.delay(50);
+		chartRayLen += 0.2;
+
+		checkSceneEnded(20);
+}
+
 void loop() {
 		bool changed = false;
 		if (currentScene != lastScene) {
@@ -1064,6 +1088,9 @@ void loop() {
 						break;
 				case CLOCK:
 						clockScene(changed);
+						break;
+				case CHART:
+						chartScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
