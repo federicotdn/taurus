@@ -77,12 +77,13 @@ enum Scene {
 		FILL_LINES,
 		CIRCLES,
 		L_SYSTEM,
+		CLOCK,
 		TOTAL
 };
 
 //TODO: Re-enable "verify code" in Arduino IDE
 
-Scene currentScene = SYMBOL_TAURUS;
+Scene currentScene = CLOCK;
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -196,10 +197,10 @@ void toCartesian(int x, int y, double degrees, int len, int *endX, int *endY) {
 		*endY = y - o;		
 }
 
-void drawLineAngle(int x, int y, double degrees, int len) {
+void drawLineAngle(int x, int y, double degrees, int len, int color) {
 		int endX, endY;
 		toCartesian(x, y, degrees, len, &endX, &endY);
-		TV.draw_line(x, y, endX, endY, 1);
+		TV.draw_line(x, y, endX, endY, color);
 }
 
 void setup() {
@@ -248,10 +249,19 @@ bool checkSceneEnded(long seconds) {
 		return false;
 }
 
+void testScene() {
+		TV.draw_line(0, 0, WIDTH - 1, HEIGHT - 1, 1);
+		TV.draw_line(0, HEIGHT - 1, WIDTH - 1, 0, 1);
+		TV.draw_line(0, HEIGHT / 2, WIDTH - 1, HEIGHT / 2, 1);
+		TV.draw_line(WIDTH / 2, 0, WIDTH / 2, HEIGHT - 1, 1);
+		
+		TV.draw_circle(WIDTH / 2, HEIGHT / 2, 5, 1, 1);
+}
+
 void tauroSymbolScene() {
 		const char* s = getSignSymbol(1);
 		TV.bitmap(BMP_X, BMP_Y, s);
-		TV.delay(1);
+		TV.delay(5000);
 		checkSceneEnded(5);
 }
 
@@ -361,12 +371,13 @@ void symbolFadeScene(bool changed) {
 
 int cmdIdx = 0;
 void commandsScene() {
-		TV.println(cmds_words[cmdIdx % CMDS_WORDS_COUNT]);
-		cmdIdx++;
-		TV.delay(1100);
+		if (cmdIdx < CMDS_WORDS_COUNT) {
+				TV.println(cmds_words[cmdIdx % CMDS_WORDS_COUNT]);
+				cmdIdx++;
+				TV.delay(900);
+		}
 
-
-		if (checkSceneEnded(10)) {
+		if (checkSceneEnded(15)) {
 				cmdIdx = 0;
 		}
 }
@@ -531,10 +542,13 @@ void symbolsSnakeScene(bool changed) {
 				snakeY = HEIGHT / 2;
 		}
 
-		if (TV.millis() - lastReset > 1500) {
+		if (TV.millis() - lastReset > 2000) {
 				TV.clear_screen();
 				TV.bitmap(BMP_X, BMP_Y, lastSnakeBmp);
 				lastReset = TV.millis();
+				snakeX = WIDTH / 2;
+				snakeY = HEIGHT / 2;
+				orientation = random((int)TOTAL_ORIENTATION);
 		}
 
 		unsigned char currentColor = TV.get_pixel(snakeX, snakeY);
@@ -693,7 +707,7 @@ void shiftLine(int orientation, int direction, int index, int step) {
 		}
 }
 
-#define STEP_COUNT 500
+#define STEP_COUNT 300
 unsigned char steps[STEP_COUNT][4] = { 0 };
 bool rewinding = false;
 int stepIdx = 0;
@@ -743,7 +757,7 @@ void symbolShiftScene(bool changed) {
 
 		shiftLine(orientation, direction, (orientation == 0) ? col : row, step);
 
-		if (checkSceneEnded(25)) {
+		if (checkSceneEnded(30)) {
 				TV.delay(1500);
 		}
 }
@@ -764,7 +778,7 @@ void blindsScene(bool changed) {
 
 		backBufferToScreen();
 
-		checkSceneEnded(15);
+		checkSceneEnded(20);
 }
 
 void fadeInScene(bool changed) {
@@ -887,7 +901,7 @@ void lSystemRecursive(int x, int y, double angle, int len) {
 				return;
 		}
 
-		drawLineAngle(x, y, angle, len);
+		drawLineAngle(x, y, angle, len, 1);
 		int endX, endY;
 		toCartesian(x, y, angle, len, &endX, &endY);
 
@@ -916,6 +930,35 @@ void lSystemScene() {
 		TV.clear_screen();
 
 		checkSceneEnded(20);
+}
+
+double currentAngle, hourAngle, minuteAngle;
+double angleDiff = 360.0 / 60.0;
+const int maxRadius = (HEIGHT / 2) - 8;
+const int secondsLen = maxRadius - 4;
+const int minutesLen = maxRadius - 13;
+const int hoursLen = maxRadius - 22;
+void clockScene(bool changed) {
+		if (changed) {
+				TV.draw_circle(WIDTH / 2, HEIGHT / 2, maxRadius, 1, 0);
+
+				currentAngle = random(60) * angleDiff;
+				hourAngle = random(60) * angleDiff;
+				minuteAngle = random(60) * angleDiff;
+		}
+
+		drawLineAngle(WIDTH / 2, HEIGHT / 2, currentAngle, secondsLen, 0);
+		drawLineAngle(WIDTH / 2, HEIGHT / 2, minuteAngle, minutesLen, 0);
+
+		currentAngle -= angleDiff;
+		minuteAngle -= angleDiff / 60.0;
+		// Dont bother updating hours
+
+		drawLineAngle(WIDTH / 2, HEIGHT / 2, currentAngle, secondsLen, 1);	
+		drawLineAngle(WIDTH / 2, HEIGHT / 2, hourAngle, hoursLen, 1);
+		drawLineAngle(WIDTH / 2, HEIGHT / 2, minuteAngle, minutesLen, 1);
+
+		checkSceneEnded(15);
 }
 
 void loop() {
@@ -1018,6 +1061,9 @@ void loop() {
 						break;
 				case L_SYSTEM:
 						lSystemScene();
+						break;
+				case CLOCK:
+						clockScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");

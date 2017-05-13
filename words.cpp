@@ -19,8 +19,8 @@ const char *errors_words[ERRORS_WORDS_COUNT] = {
 };
 
 const char *cmds_words[CMDS_WORDS_COUNT] = {
-    "./tauro.exe", "RUN", "STAR... OK", "SUN... OK", "MOON... OK", "VENUS DATA",
-    "EPOCH J2000", "92 BAR", "9.2MPA", "...DONE"
+    "", "./tauro.exe", "RUN", "STAR... OK", "SUN...  OK", "MOON... OK", "VENUS DATA:",
+    "EPOCH J2000", "92 BAR", "9.2MPA", "DATA LOADED", "TOTAL 32KB", "EXIT 0"
 };
 
 const char *event_words[EVENT_WORDS_COUNT] = {
