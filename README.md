@@ -3,6 +3,23 @@
 ## Description
 Astrology-themed visuals using the Arduino TVout library.
 
+## Compiling
+### Requirements
+- Arduino 1.6.8 (tested on Linux x64)
+- Arduino Mega 2560
+- TVout 1.0.1 (tested on commit `d3003a5`)
+
+### Steps
+1. Install the Arduino IDE and TVout library.
+2. Add `-fpermissive` to the `compiler.cpp.flags` property in `hardware/arduino/avr/platform.txt` (relative to the Arduino IDE directory).
+3. Copy all `.h` and `.cpp` files in `TVout/TVoutfonts` to `TVout` (relative to the Arduino `libraries` directory).
+4. Setup your Arduino as is described [here](https://playground.arduino.cc/Main/TVout), compile and upload.
+5. If you're having issues linking against `libreadline.so.6`, use:
+```bash
+$ cd /lib/x86_64-linux-gnu
+$ sudo ln -s libreadline.so.7.0 libreadline.so.6
+```
+
 ## Screenshots
 
 ![img_1715](https://cloud.githubusercontent.com/assets/6868935/26022668/2ab70f9a-3781-11e7-98f2-d60cb15e479e.JPG)

@@ -36,6 +36,8 @@
 #define PLANET_COUNT 7
 #define WIDTH 128
 #define HEIGHT 96
+#define HF_WIDTH (WIDTH / 2)
+#define HF_HEIGHT (HEIGHT / 2)
 #define IMG_SIZE 64
 #define PI 3.14159265
 
@@ -72,19 +74,19 @@ enum Scene {
 		SYMBOL_SHIFT,
 		BLINDS,
 		FADE_IN,
-		WHITE_BEAR,
+		//WHITE_BEAR, // Disable this scene
 		PARTY_WORDS,
 		FILL_LINES,
 		CIRCLES,
 		L_SYSTEM,
 		CLOCK,
 		CHART,
+    	HEX_SCENE,
+		PYRAMID,
 		TOTAL
 };
 
-//TODO: Re-enable "verify code" in Arduino IDE
-
-Scene currentScene = CHART;
+Scene currentScene = PYRAMID; // Initial scene
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -264,6 +266,43 @@ void tauroSymbolScene() {
 		TV.bitmap(BMP_X, BMP_Y, s);
 		TV.delay(5000);
 		checkSceneEnded(5);
+}
+
+int pyramidBase = HF_WIDTH;
+int pyramidHeight = HEIGHT - 10;
+void pyramidScene(bool changed) {
+	TV.clear_screen();
+	pyramidBase = (sin(TV.millis() / 100.0f) + 1) / 2.0f * HF_WIDTH;
+	
+	//base line
+	TV.draw_line(HF_WIDTH + pyramidBase, pyramidHeight, HF_WIDTH - pyramidBase, pyramidHeight, 1);
+
+	//top right line
+	TV.draw_line(HF_WIDTH + pyramidBase, pyramidHeight, HF_WIDTH, 0, 1);
+
+	//top left line
+	TV.draw_line(HF_WIDTH - pyramidBase, pyramidHeight, HF_WIDTH, 0, 1);
+
+	TV.delay(1);
+
+	checkSceneEnded(15);
+}
+
+const char* hexDigits = "ABCDEF0123456789 ";
+void hexScene(bool changed) {
+    if (changed) {
+        TV.clear_screen();
+        TV.set_cursor(0, 0);
+    }
+
+    int digit = random(16 + 1);
+    TV.print(hexDigits[digit]);
+    TV.delay(1);
+    
+    if (checkSceneEnded(10)) {
+        TV.print("\n\nMEMORY DUMP DONE");
+        TV.delay(5000);
+    }
 }
 
 void starsScene() {		
@@ -824,7 +863,7 @@ void partyWordsScene() {
 
 		if (checkSceneEnded(10)) {
 				TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
-				TV.print("ORGULLO TAURINO.");
+				TV.print("ORGULLO TAURINO II.");
 				TV.delay(3000);					
 		}
 }
@@ -1071,9 +1110,9 @@ void loop() {
 				case FADE_IN:
 						fadeInScene(changed);
 						break;
-				case WHITE_BEAR:
-						whiteBearScene(changed);
-						break;
+				// case WHITE_BEAR:
+				// 		whiteBearScene(changed);
+				// 		break;
 				case PARTY_WORDS:
 						partyWordsScene();
 						break;
@@ -1091,6 +1130,12 @@ void loop() {
 						break;
 				case CHART:
 						chartScene(changed);
+						break;
+        		case HEX_SCENE:
+            			hexScene(changed);
+            			break;
+				case PYRAMID:
+						pyramidScene(changed);
 						break;
 				default:
 						TV.print("Invalid scene. ");
