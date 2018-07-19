@@ -5,9 +5,9 @@ Astrology-themed visuals using the Arduino TVout library.
 
 ## Compiling
 ### Requirements
-- Arduino 1.6.8 (tested on Linux x64)
-- Arduino Mega 2560
-- TVout 1.0.1 (tested on commit `d3003a5`)
+- Arduino IDE 1.6.8 (tested on Linux x64)
+- Arduino Uno, Arduino Leonardo or Arduino Mega 2560 
+- [TVout 1.0.1](https://github.com/Avamander/arduino-tvout) (tested on commit `d3003a5`)
 
 ### Steps
 1. Install the Arduino IDE and TVout library.
