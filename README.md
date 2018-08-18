@@ -29,3 +29,5 @@ $ sudo ln -s libreadline.so.7.0 libreadline.so.6
 ![img_1710](https://cloud.githubusercontent.com/assets/6868935/26022670/2aef7b46-3781-11e7-9255-9f0aff535799.JPG)
 ![img_1698](https://cloud.githubusercontent.com/assets/6868935/26022671/2af458c8-3781-11e7-8d7f-3fb0c9a38bb3.JPG)
 
+## Ideas
+- Conway's Game of Life
