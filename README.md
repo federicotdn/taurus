@@ -3,21 +3,34 @@
 ## Description
 Astrology-themed visuals using the Arduino TVout library.
 
-## Compiling
+## Setup
 ### Requirements
 - Arduino IDE 1.6.8 (tested on Linux x64)
 - Arduino Uno, Arduino Leonardo or Arduino Mega 2560 
 - [TVout 1.0.1](https://github.com/Avamander/arduino-tvout) (tested on commit `d3003a5`)
 
-### Steps
+### Hardware
+Setup your Arduino board like this:
+
+![img](https://user-images.githubusercontent.com/6868935/56868337-6d058f00-69c7-11e9-8973-919bfe2ac063.png)
+
+Additionally, add a LED on pin 13.
+
+### Sketch
 1. Install the Arduino IDE and TVout library.
 2. Add `-fpermissive` to the `compiler.cpp.flags` property in `hardware/arduino/avr/platform.txt` (relative to the Arduino IDE directory).
-3. Copy all `.h` and `.cpp` files in `TVout/TVoutfonts` to `TVout` (relative to the Arduino `libraries` directory).
-4. Setup your Arduino as is described [here](https://playground.arduino.cc/Main/TVout), compile and upload.
-5. If you're having issues linking against `libreadline.so.6`, use:
+3. Copy all `.h` and `.cpp` files in `TVout/TVoutfonts` to `TVout` (relative to the Arduino IDE `libraries` directory).
+4. Compile `taurus.ino` and upload it using the Arduino IDE.
+
+If you're having issues linking against `libreadline.so.6`, use:
 ```bash
 $ cd /lib/x86_64-linux-gnu
 $ sudo ln -s libreadline.so.7.0 libreadline.so.6
+```
+
+If uploading results in `avrdude: ser_open(): can't open device "/dev/ttyACM0": Permission denied`, try:
+```bash
+$ sudo chmod a+rw /dev/ttyACM0
 ```
 
 ## Screenshots
