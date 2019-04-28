@@ -24,5 +24,13 @@ const char *cmds_words[CMDS_WORDS_COUNT] = {
 };
 
 const char *event_words[EVENT_WORDS_COUNT] = {
-    "FIESTA", "ALCOHOL", "GLITTER", "TAURO", "ANARCOAFECCION", "LIBRE", "SABADO", "28 ABRIL", "CUERPXSJUGANDO"
+    "BIRRA",
+    "VINO",
+    "FERNET",
+    "CUMBIA",
+    "MAQUINADEHUMO",
+    "ALEGRIASINTETICA",
+    "PARA TODXS",
+    "FIESTA",
+    "11 DE MAYO"
 };

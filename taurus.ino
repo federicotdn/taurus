@@ -85,7 +85,7 @@ enum Scene {
     TOTAL
 };
 
-Scene currentScene = PYRAMID; // Initial scene
+Scene currentScene = PARTY_WORDS; // Initial scene
 Scene lastScene = -1;
 TVout TV;
 unsigned long startTime = 0;
@@ -355,7 +355,6 @@ void constellationsScene() {
     constellationI++;
     
     TV.delay(700);
-    //sp(1,1,1);
 
     checkSceneEnded(20);
 }
@@ -837,14 +836,14 @@ void partyWordsScene() {
     TV.clear_screen();
     TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
     TV.print(event_words[partyIdx % EVENT_WORDS_COUNT]);
-    TV.delay(140);
+    TV.delay(200);
 
     partyIdx++;
 
-    if (checkSceneEnded(10)) {
+    if (checkSceneEnded(8)) {
         TV.set_cursor(0, (HEIGHT / 2) - (FONT_H / 2));
-        TV.print("ORGULLO TAURINO II.");
-        TV.delay(3000);         
+        TV.print("ORGULLO TAURINO III");
+        TV.delay(4000);
     }
 }
 
@@ -1115,7 +1114,6 @@ void loop() {
             pyramidScene(changed);
             break;
         default:
-            TV.print("Invalid scene. ");
             blinkForever();
             break;
     }
